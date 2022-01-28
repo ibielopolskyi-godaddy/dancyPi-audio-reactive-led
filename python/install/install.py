@@ -32,6 +32,7 @@ def install_dependencies():
 
     print("================== Start Installing rpi_ws281x ==================")
     os.system("sudo pip3 install rpi_ws281x")
+    os.system("sudo pip3 install apa102-pi")
     print("================== Completed Installing rpi_ws281x ==================")
 
 

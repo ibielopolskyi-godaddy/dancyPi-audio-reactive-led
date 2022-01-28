@@ -16,6 +16,11 @@ elif config.DEVICE == 'pi':
                                        config.LED_FREQ_HZ, config.LED_DMA,
                                        config.LED_INVERT, config.BRIGHTNESS)
     strip.begin()
+elif config.DEVICE == 'apa102':
+    from apa102_pi.driver.apa102 import APA102
+    strip = APA102(config.N_PIXELS, global_brightness=config.BRIGHTNESS, bus_speed_hz=config.LED_FREQ_HZ)
+    #strip.start()
+
 elif config.DEVICE == 'blinkstick':
     from blinkstick import blinkstick
     import signal
@@ -104,11 +109,30 @@ def _update_pi():
         # Ignore pixels if they haven't changed (saves bandwidth)
         if np.array_equal(p[:, i], _prev_pixels[:, i]):
             continue
-            
         strip._led_data[i] = int(rgb[i])
     _prev_pixels = np.copy(p)
     strip.show()
 
+def _update_apa():
+    """Writes new LED values to the Raspberry Pi's LED strip
+
+    Raspberry Pi uses the rpi_ws281x to control the LED strip directly.
+    This function updates the LED strip with new values.
+    """
+    global pixels, _prev_pixels
+    # Truncate values and cast to integer
+    pixels = np.clip(pixels, 0, 255).astype(int)
+    # Optional gamma correction
+    p = _gamma[pixels] if config.SOFTWARE_GAMMA_CORRECTION else np.copy(pixels)
+    # Update the pixels
+    for i in range(config.N_PIXELS):
+        # Ignore pixels if they haven't changed (saves bandwidth)
+        if np.array_equal(p[:, i], _prev_pixels[:, i]):
+            continue
+        #print(rgb)
+        strip.set_pixel(i, p[0][i], p[1][i], p[2][i])
+    _prev_pixels = np.copy(p)
+    strip.show()
 def _update_blinkstick():
     """Writes new LED values to the Blinkstick.
         This function updates the LED strip with new values.
@@ -144,6 +168,8 @@ def update():
         _update_pi()
     elif config.DEVICE == 'blinkstick':
         _update_blinkstick()
+    elif config.DEVICE == 'apa102':
+        _update_apa()
     else:
         raise ValueError('Invalid device selected')
 
